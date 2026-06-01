@@ -14,7 +14,9 @@ description: 안드레 카파시의 LLM Wiki 패턴으로 옵시디언 기반 AI
 - 모든 정리는 무작위가 아니라 **스키마(규칙/기준/목적)** 를 따른다. 스키마는 각 폴더의 `CLAUDE.md`와 루트 `CLAUDE.md`에 담긴다.
 
 ## 모드 (인자로 분기)
-`/llm-wiki <mode> [args]` 형태로 호출한다. mode가 없으면 사용자 의도를 보고 아래 중 하나를 고른다.
+`/llm-wiki <mode> [args]` 형태로 호출한다.
+
+> **인자 없이 호출된 경우 (중요):** 볼트를 스캔하거나 파일을 읽어 의도를 추론하지 **말 것**(토큰 낭비 금지). 그 대신 아래 모드 표를 **그대로 한 번 보여주고**, "무엇을 하시겠어요? (`/llm-wiki <mode> [args]`)"라고 **먼저 물어본다.** 사용자가 모드를 답하기 전에는 어떤 컨텍스트도 읽지 않는다.
 
 | mode | 하는 일 |
 |------|---------|
@@ -104,13 +106,18 @@ python3 ~/.claude/skills/llm-wiki/scripts/normalize_raw.py "<볼트경로>"
 
 ---
 
-## MODE: graphify — 지식 그래프
+## MODE: graphify — 지식 그래프 (graphify 스킬에 위임)
 
-1. 사전 점검·설치: `bash ~/.claude/skills/llm-wiki/scripts/install_graphify.sh` (미설치면 고지+동의 후 설치, 이미 있으면 통과).
-   - ⚠️ graphify PyPI 패키지의 정체가 카파시 영상의 도구와 동일한지 미검증. 스크립트가 설치 후 import/CLI 진입점을 검증한다.
-2. Wiki 폴더를 대상으로 그래프를 생성한다 (도구 CLI에 맞춰 실행).
-3. 산출물 `graph.json`(AI 활용), `graph.html`(시각화), `graph_report.md`(영문 분석)를 `<볼트>/graphify_out/`에 저장.
-4. 이후 `query` 모드에서 graph.json을 근거로 활용한다.
+graphify는 카파시 LLM Wiki를 구현한 오픈소스 도구(PyPI: **`graphifyy`**, CLI/스킬: `graphify`)이며, **자체 `/graphify` 스킬**을 갖는다. 우리는 중복 구현하지 않고 여기에 위임한다.
+
+1. 사전 점검·설치: `bash ~/.claude/skills/llm-wiki/scripts/install_graphify.sh` (미설치면 고지+동의 후 설치). `graphify install`이 `/graphify` 스킬을 등록한다.
+2. 볼트(또는 `Wiki/`)를 대상으로 graphify 스킬을 실행한다:
+   - `/graphify <볼트경로>` — 전체 파이프라인(추출→커뮤니티 탐지→시각화).
+   - 옵션: `--update`(증분), `--no-viz`(JSON/리포트만), `--wiki`(index.md+커뮤니티별 글).
+3. 산출물은 **현재 작업 디렉토리의 `graphify-out/`** 에 생성된다: `graph.json`(GraphRAG), `graph.html`(시각화), `GRAPH_REPORT.md`(영문 분석).
+4. 이후 질문은 `/graphify query "<질문>"` 으로 그래프 근거 답변(BFS/DFS). `graphify-out/`이 있으면 `query` 모드도 이를 우선 활용한다.
+
+> 참고: graphify는 Obsidian/Wiki 산출도 직접 지원(`--obsidian`, `--wiki`)하므로, LLM Wiki 볼트와 자연스럽게 결합된다.
 
 ---
 
